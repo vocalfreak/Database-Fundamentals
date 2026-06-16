@@ -51,3 +51,10 @@ where patient_id in (
     where appointment_status = 'Completed'
 )
 order by patient_id;
+
+// Not in lecture
+
+SELECT CONCAT(DOCTOR_ID, ' : ', DOCTOR_NAME) AS DOCTOR_INFO
+FROM DOCTOR;
+
+SELECT LPAD(DOCTOR_ID, 10, '*') FROM DOCTOR;
