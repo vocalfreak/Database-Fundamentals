@@ -52,9 +52,58 @@ where patient_id in (
 )
 order by patient_id;
 
-// Not in lecture
-
 SELECT CONCAT(DOCTOR_ID, ' : ', DOCTOR_NAME) AS DOCTOR_INFO
 FROM DOCTOR;
 
 SELECT LPAD(DOCTOR_ID, 10, '*') FROM DOCTOR;
+
+-- trigger
+--create or replace  function check_appointment_date()
+--return trigger as $$
+--begin
+--	if new.appointment_date < current_date then
+--		RAISE exception
+--		'Appointment date cannot be in the past';
+--	end if;
+--
+--	return new;
+--end;
+--$$
+--language plpgsql;
+--
+--
+--end
+
+
+--trigger to prevent double booking, and prevent overlapping(KIV)
+create or replace function public.prevent_double_booking()
+returns trigger as $$
+begin
+	if exists(
+	select 1
+	from public.appointment
+	where doctor_id = new.doctor_id
+		and appointment_date = new.appointment_date
+		and appointment_time = new.appointment_time
+		and appointment_status <> 'Cancelled'
+		and appointment_id <> new.appointment_id
+		--and new.appointment_start_time < appointment_end_time
+		--and new_appointment_end_time > appointment_start_time
+	)then
+		raise exception 'Doctor % already has an active appointment on % at %',
+			new.doctor_id, new.appointment_date, new.appointment_time;
+	end if;
+	return new;
+end
+$$ LANGUAGE plpgsql;
+
+drop trigger if exists trg_prevent_double_booking on public.appointment;
+
+create trigger trg_prevent_double_booking
+before insert or update on public.appointment
+for each row
+execute function public.prevent_double_booking();
+
+
+
+
