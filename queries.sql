@@ -57,7 +57,7 @@ FROM DOCTOR;
 
 SELECT LPAD(DOCTOR_ID, 10, '*') FROM DOCTOR;
 
---trigger to prevent double booking, and prevent overlapping(KIV)
+--trigger to prevent double booking, and prevent overlapping
 create or replace function public.prevent_double_booking()
 returns trigger as $$
 begin
@@ -66,14 +66,13 @@ begin
 	from public.appointment
 	where doctor_id = new.doctor_id
 		and appointment_date = new.appointment_date
-		and appointment_time = new.appointment_time
 		and appointment_status <> 'Cancelled'
 		and appointment_id <> new.appointment_id
-		--and new.appointment_start_time < appointment_end_time
-		--and new_appointment_end_time > appointment_start_time
+		and new.appointment_start_time < appointment_end_time
+		and new.appointment_end_time > appointment_start_time
 	)then
-		raise exception 'Doctor % already has an active appointment on % at %',
-			new.doctor_id, new.appointment_date, new.appointment_time;
+		raise exception 'Doctors % already has an active appointment on % between % and %',
+			new.doctor_id, new.appointment_date, new.appointment_start_time, new.appointment_end_time;
 	end if;
 	return new;
 end
@@ -105,4 +104,3 @@ create trigger trg_check_appointment_date
 before insert or update on public.appointment
 for each row
 execute function public.check_appointment_date();
-
