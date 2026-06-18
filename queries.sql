@@ -104,3 +104,14 @@ create trigger trg_check_appointment_date
 before insert or update on public.appointment
 for each row
 execute function public.check_appointment_date();
+
+--strored proceudre to update appointment status
+create or replace procedure update_appointment_status(
+	p_appointment_id    VARCHAR(6),
+	p_status            VARCHAR(20)
+)
+language plpgsql as $$
+begin
+	update appointment set appointment_status = p_status where appointment_id = p_appointment_id;
+end;
+$$;
