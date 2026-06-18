@@ -57,24 +57,6 @@ FROM DOCTOR;
 
 SELECT LPAD(DOCTOR_ID, 10, '*') FROM DOCTOR;
 
--- trigger
---create or replace  function check_appointment_date()
---return trigger as $$
---begin
---	if new.appointment_date < current_date then
---		RAISE exception
---		'Appointment date cannot be in the past';
---	end if;
---
---	return new;
---end;
---$$
---language plpgsql;
---
---
---end
-
-
 --trigger to prevent double booking, and prevent overlapping(KIV)
 create or replace function public.prevent_double_booking()
 returns trigger as $$
@@ -105,5 +87,22 @@ for each row
 execute function public.prevent_double_booking();
 
 
+--trigger make sure appi=ointment is booked in the future
+create or replace  function public.check_appointment_date()
+returns trigger as $$
+begin
+	if new.appointment_date < current_date then
+		raise exception 'Please ensure that the date chosen is not in the past';
+	end if;
 
+	return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists trg_check_appointment_date on public.appointment;
+
+create trigger trg_check_appointment_date
+before insert or update on public.appointment
+for each row
+execute function public.check_appointment_date();
 
