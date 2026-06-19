@@ -16,7 +16,8 @@ create or replace view public.vw_patient_appointment_details as
 select
     a.appointment_id,
     a.appointment_date,
-    a.appointment_time,
+    a.appointment_start_time,
+    a.appointment_end_time,
     a.appointment_status,
     p.patient_id,
     p.patient_name,
@@ -38,7 +39,8 @@ left join public.medical_record mr
 on a.appointment_id = mr.appointment_id;
 
 select *
-from public.vw_patient_appointment_details;
+from public.vw_patient_appointment_details
+order by appointment_id;
 
 select
     patient_id,
@@ -52,9 +54,66 @@ where patient_id in (
 )
 order by patient_id;
 
-// Not in lecture
-
 SELECT CONCAT(DOCTOR_ID, ' : ', DOCTOR_NAME) AS DOCTOR_INFO
 FROM DOCTOR;
 
 SELECT LPAD(DOCTOR_ID, 10, '*') FROM DOCTOR;
+
+--trigger to prevent double booking, and prevent overlapping
+create or replace function public.prevent_double_booking()
+returns trigger as $$
+begin
+	if exists(
+	select 1
+	from public.appointment
+	where doctor_id = new.doctor_id
+		and appointment_date = new.appointment_date
+		and appointment_status <> 'Cancelled'
+		and appointment_id <> new.appointment_id
+		and new.appointment_start_time < appointment_end_time
+		and new.appointment_end_time > appointment_start_time
+	)then
+		raise exception 'Doctors % already has an active appointment on % between % and %',
+			new.doctor_id, new.appointment_date, new.appointment_start_time, new.appointment_end_time;
+	end if;
+	return new;
+end
+$$ LANGUAGE plpgsql;
+
+drop trigger if exists trg_prevent_double_booking on public.appointment;
+
+create trigger trg_prevent_double_booking
+before insert or update on public.appointment
+for each row
+execute function public.prevent_double_booking();
+
+
+--trigger make sure appi=ointment is booked in the future
+create or replace  function public.check_appointment_date()
+returns trigger as $$
+begin
+	if new.appointment_date < current_date then
+		raise exception 'Please ensure that the date chosen is not in the past';
+	end if;
+
+	return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists trg_check_appointment_date on public.appointment;
+
+create trigger trg_check_appointment_date
+before insert or update on public.appointment
+for each row
+execute function public.check_appointment_date();
+
+--strored proceudre to update appointment status
+create or replace procedure update_appointment_status(
+	p_appointment_id    VARCHAR(6),
+	p_status            VARCHAR(20)
+)
+language plpgsql as $$
+begin
+	update appointment set appointment_status = p_status where appointment_id = p_appointment_id;
+end;
+$$;
