@@ -16,7 +16,8 @@ create or replace view public.vw_patient_appointment_details as
 select
     a.appointment_id,
     a.appointment_date,
-    a.appointment_time,
+    a.appointment_start_time,
+    a.appointment_end_time,
     a.appointment_status,
     p.patient_id,
     p.patient_name,
@@ -38,7 +39,8 @@ left join public.medical_record mr
 on a.appointment_id = mr.appointment_id;
 
 select *
-from public.vw_patient_appointment_details;
+from public.vw_patient_appointment_details
+order by appointment_id;
 
 select
     patient_id,
