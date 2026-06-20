@@ -88,11 +88,12 @@ for each row
 execute function public.prevent_double_booking();
 
 
---trigger make sure appi=ointment is booked in the future
+--trigger make sure appointment is booked in the future
 create or replace  function public.check_appointment_date()
 returns trigger as $$
 begin
-	if new.appointment_date < current_date then
+	if(TG_OP = 'INSERT' or new.appointment_date <> old.appointment_date)
+	and new.appointment_date < current_date then
 		raise exception 'Please ensure that the date chosen is not in the past';
 	end if;
 
@@ -117,3 +118,17 @@ begin
 	update appointment set appointment_status = p_status where appointment_id = p_appointment_id;
 end;
 $$;
+
+select * from public.appointment;
+
+--snapshot to update
+with old_snapshot as (
+    select appointment_id, appointment_date as old_date
+    from public.appointment
+    where appointment_id = 'APT007'
+)
+update public.appointment a
+set appointment_date = '2026-08-01'
+from old_snapshot o
+where a.appointment_id = o.appointment_id
+returning a.appointment_id, o.old_date, a.appointment_date as new_date, a.appointment_status;
