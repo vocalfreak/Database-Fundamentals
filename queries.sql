@@ -193,7 +193,3 @@ BEGIN
     ORDER BY doc.doctor_name, available_start;
 END;
 $$ LANGUAGE plpgsql;
-
-select * from public.appointment;
-
-CALL update_appointment_status('APT007','Cancelled');
