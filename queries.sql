@@ -133,10 +133,6 @@ $$;
 
 select * from public.appointment;
 
-select appointment_id, appointment_status from public.appointment where appointment_id = 'APT007';
-call public.update_appointment_status('APT007', 'Completed');
-select appointment_id, appointment_status from public.appointment where appointment_id = 'APT007';
-
 --not in lecture 1(find duraton)
 select 
 	doc.doctor_name,
