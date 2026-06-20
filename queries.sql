@@ -152,7 +152,7 @@ join public.department d
 order by duration_minutes desc, doctor_name;
 
 --not in lecture 2(find open timeslot)
-CREATE OR REPLACE FUNCTION public.find_available_slots(p_date DATE)
+CREATE OR REPLACE FUNCTION public.find_available_slots(p_date DATE, p_department_name varchar(100))
 RETURNS TABLE (
     doctor_id        CHAR(6),
     doctor_name      VARCHAR(100),
@@ -176,7 +176,8 @@ BEGIN
         (p_date + time '16:30')::timestamp,
         interval '30 minutes'
     ) AS slot_start
-    WHERE NOT EXISTS (
+    where d.department_name = p_department_name
+    and not exists (
         SELECT 1
         FROM public.appointment a
         WHERE a.doctor_id = doc.doctor_id
