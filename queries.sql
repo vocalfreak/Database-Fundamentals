@@ -132,3 +132,20 @@ set appointment_date = '2026-08-01'
 from old_snapshot o
 where a.appointment_id = o.appointment_id
 returning a.appointment_id, o.old_date, a.appointment_date as new_date, a.appointment_status;
+
+select 
+	doc.doctor_name,
+	d.department_name,
+	a.appointment_id,
+	a.appointment_date,
+	a.appointment_start_time,
+	a.appointment_end_time,
+	extract(epoch from(a.appointment_end_time - a.appointment_start_time)) / 60
+		as duration_minutes,
+	a.appointment_status
+from public.appointment a
+join public.doctor doc
+	on a.doctor_id = doc.doctor_id
+join public.department d
+	on doc.department_id = d.department_id
+order by duration_minutes desc, doctor_name;
