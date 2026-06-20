@@ -108,6 +108,18 @@ before insert or update on public.appointment
 for each row
 execute function public.check_appointment_date();
 
+--additional query for trigger#2
+with old_snapshot as (
+    select appointment_id, appointment_date as old_date
+    from public.appointment
+    where appointment_id = 'APT007'
+)
+update public.appointment a
+set appointment_date = '2028-08-01'
+from old_snapshot o
+where a.appointment_id = o.appointment_id
+returning a.appointment_id, o.old_date, a.appointment_date as new_date, a.appointment_status;
+
 --strored proceudre to update appointment status
 create or replace procedure update_appointment_status(
 	p_appointment_id    VARCHAR(6),
@@ -121,17 +133,9 @@ $$;
 
 select * from public.appointment;
 
---additional query for stored procedure
-with old_snapshot as (
-    select appointment_id, appointment_date as old_date
-    from public.appointment
-    where appointment_id = 'APT007'
-)
-update public.appointment a
-set appointment_date = '2026-08-01'
-from old_snapshot o
-where a.appointment_id = o.appointment_id
-returning a.appointment_id, o.old_date, a.appointment_date as new_date, a.appointment_status;
+select appointment_id, appointment_status from public.appointment where appointment_id = 'APT007';
+call public.update_appointment_status('APT007', 'Completed');
+select appointment_id, appointment_status from public.appointment where appointment_id = 'APT007';
 
 --not in lecture 1(find duraton)
 select 
@@ -189,3 +193,7 @@ BEGIN
     ORDER BY doc.doctor_name, available_start;
 END;
 $$ LANGUAGE plpgsql;
+
+select * from public.appointment;
+
+CALL update_appointment_status('APT007','Cancelled');
