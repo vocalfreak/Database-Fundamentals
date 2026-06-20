@@ -121,7 +121,7 @@ $$;
 
 select * from public.appointment;
 
---snapshot to update
+--additional query for stored procedure
 with old_snapshot as (
     select appointment_id, appointment_date as old_date
     from public.appointment
