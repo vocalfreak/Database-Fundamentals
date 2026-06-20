@@ -121,7 +121,7 @@ $$;
 
 select * from public.appointment;
 
---snapshot to update
+--additional query for stored procedure
 with old_snapshot as (
     select appointment_id, appointment_date as old_date
     from public.appointment
@@ -132,3 +132,59 @@ set appointment_date = '2026-08-01'
 from old_snapshot o
 where a.appointment_id = o.appointment_id
 returning a.appointment_id, o.old_date, a.appointment_date as new_date, a.appointment_status;
+
+--not in lecture 1(find duraton)
+select 
+	doc.doctor_name,
+	d.department_name,
+	a.appointment_id,
+	a.appointment_date,
+	a.appointment_start_time,
+	a.appointment_end_time,
+	extract(epoch from(a.appointment_end_time - a.appointment_start_time)) / 60
+		as duration_minutes,
+	a.appointment_status
+from public.appointment a
+join public.doctor doc
+	on a.doctor_id = doc.doctor_id
+join public.department d
+	on doc.department_id = d.department_id
+order by duration_minutes desc, doctor_name;
+
+--not in lecture 2(find open timeslot)
+CREATE OR REPLACE FUNCTION public.find_available_slots(p_date DATE)
+RETURNS TABLE (
+    doctor_id        CHAR(6),
+    doctor_name      VARCHAR(100),
+    department_name  VARCHAR(100),
+    available_start  TIME,
+    available_end    TIME
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        doc.doctor_id,
+        doc.doctor_name,
+        d.department_name,
+        slot_start::time AS available_start,
+        (slot_start + interval '30 minutes')::time AS available_end
+    FROM public.doctor doc
+    JOIN public.department d
+        ON doc.department_id = d.department_id
+    CROSS JOIN generate_series(
+        (p_date + time '09:00')::timestamp,
+        (p_date + time '16:30')::timestamp,
+        interval '30 minutes'
+    ) AS slot_start
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM public.appointment a
+        WHERE a.doctor_id = doc.doctor_id
+          AND a.appointment_date = p_date
+          AND a.appointment_status <> 'Cancelled'
+          AND slot_start::time < a.appointment_end_time
+          AND (slot_start + interval '30 minutes')::time > a.appointment_start_time
+    )
+    ORDER BY doc.doctor_name, available_start;
+END;
+$$ LANGUAGE plpgsql;
