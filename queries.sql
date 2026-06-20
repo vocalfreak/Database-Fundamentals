@@ -88,11 +88,12 @@ for each row
 execute function public.prevent_double_booking();
 
 
---trigger make sure appi=ointment is booked in the future
+--trigger make sure appointment is booked in the future
 create or replace  function public.check_appointment_date()
 returns trigger as $$
 begin
-	if new.appointment_date < current_date then
+	if(TG_OP = 'INSERT' or new.appointment_date <> old.appointment_date)
+	and new.appointment_date < current_date then
 		raise exception 'Please ensure that the date chosen is not in the past';
 	end if;
 
